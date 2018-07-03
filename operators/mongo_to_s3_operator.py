@@ -1,5 +1,9 @@
 from bson import json_util
 import json
+import os
+from tempfile import NamedTemporaryFile
+import jsonlines
+from datetime import datetime
 
 from mongo_plugin.hooks.mongo_hook import MongoHook
 from airflow.hooks.S3_hook import S3Hook
@@ -67,9 +71,18 @@ class MongoToS3Operator(BaseOperator):
         results = collection.aggregate(self.mongo_query) if self.is_pipeline else collection.find(self.mongo_query)
 
         # Performs transform then stringifies the docs results into json format
-        docs_str = self._stringify(self.transform(results))
+        # docs_str = self._stringify(self.transform(results))
+        tmp_file = NamedTemporaryFile()
+        print("writing results to temp file")
+        start = datetime.now()
+        with jsonlines.Writer(tmp_file) as writer:
+            writer.write_all(results)
+        tmp_file.close()
+        end = datetime.now()
+        print("took %i seconds" % (end - start).total_seconds())
 
-        s3_conn.load_string(docs_str, self.s3_key, bucket_name=self.s3_bucket, replace=self.replace)
+        s3_conn.load_file(tmp_file.name, self.s3_key, bucket_name=self.s3_bucket, replace=self.replace)
+        os.unlink(tmp_file.name)
 
     def _stringify(self, iter, joinable='\n'):
         """
