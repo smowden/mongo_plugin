@@ -3,10 +3,11 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.utils.decorators import apply_defaults
 from tempfile import NamedTemporaryFile
 from airflow.hooks.S3_hook import S3Hook
+from airflow.hooks import MongoHook
 import os
 
 
-def make_mongo_export_command(connection, collection, out, query=None, fields=None):
+def make_mongo_export_command(uri, collection, out, query=None, fields=None):
     """
     :param query:
     :param fields:
@@ -17,13 +18,13 @@ def make_mongo_export_command(connection, collection, out, query=None, fields=No
         query = {}
 
     mongo_export_cmd = """\
-    mongoexport --uri {connection}\
+    mongoexport --uri {uri}\
     -c {collection}\
     -q '{query}'\
     --out {out}\
     {fields_param}\
     """.format(
-        connection=connection,
+        uri=uri,
         collection=collection,
         query=json.dumps(query),
         out=out,
@@ -39,11 +40,11 @@ class MongoExportToS3Operator(BashOperator):
     @apply_defaults
     def __init__(
             self,
-            mongo_connection,
             mongo_collection,
             s3_conn_id,
             s3_bucket,
             s3_key,
+            mongo_conn_id='mongo_default',
             replace=False,
             mongo_query=None,
             mongo_fields=None,
@@ -52,10 +53,11 @@ class MongoExportToS3Operator(BashOperator):
             output_encoding='utf-8',
             *args, **kwargs):
 
+        mongo_uri = MongoHook(mongo_conn_id).get_uri()
         super(BashOperator, self).__init__(*args, **kwargs)
         self.tmp_file = NamedTemporaryFile()
         self.bash_command = make_mongo_export_command(
-            connection=mongo_connection,
+            uri=mongo_uri,
             collection=mongo_collection,
             out=self.tmp_file.name,
             query=mongo_query,

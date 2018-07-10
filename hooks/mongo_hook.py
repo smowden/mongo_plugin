@@ -24,10 +24,7 @@ class MongoHook(BaseHook):
         self.connection = self.get_connection(conn_id)
         self.extras = self.connection.extra_dejson
 
-    def get_conn(self):
-        """
-        Fetches PyMongo Client
-        """
+    def get_uri(self):
         conn = self.connection
 
         uri = 'mongodb://{creds}{host}{port}/{database}'.format(
@@ -39,6 +36,15 @@ class MongoHook(BaseHook):
             port='' if conn.port is None else ':{}'.format(conn.port),
             database='' if conn.schema is None else conn.schema
         )
+
+        return uri
+
+    def get_conn(self):
+        """
+        Fetches PyMongo Client
+        """
+
+        uri = self.get_uri()
 
         # Mongo Connection Options dict that is unpacked when passed to MongoClient
         options = self.extras
