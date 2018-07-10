@@ -3,7 +3,7 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.utils.decorators import apply_defaults
 from tempfile import NamedTemporaryFile
 from airflow.hooks.S3_hook import S3Hook
-from airflow.hooks import MongoHook
+from mongo_plugin.hooks.mongo_hook import MongoHook
 import os
 
 
