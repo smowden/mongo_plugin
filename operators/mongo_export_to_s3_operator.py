@@ -7,7 +7,7 @@ from mongo_plugin.hooks.mongo_hook import MongoHook
 import os
 
 
-def make_mongo_export_command(uri, collection, out, query=None, fields=None):
+def make_mongo_export_command(uri, collection, out, query=None, fields=None, extra_params = []):
     """
     :param query:
     :param fields:
@@ -23,12 +23,14 @@ def make_mongo_export_command(uri, collection, out, query=None, fields=None):
     -q '{query}'\
     --out {out}\
     {fields_param}\
+    {extra_params}\
     """.format(
         uri=uri,
         collection=collection,
         query=json.dumps(query),
         out=out,
-        fields_param=fields_param
+        fields_param=fields_param,
+        extra_params=" ".join(["--{param}".format(param=param) for param in extra_params])
     )
 
 
@@ -48,6 +50,7 @@ class MongoExportToS3Operator(BashOperator):
             replace=False,
             mongo_query=None,
             mongo_fields=None,
+            mongo_extra_params=[],
             xcom_push=False,
             env=None,
             output_encoding='utf-8',
@@ -61,7 +64,8 @@ class MongoExportToS3Operator(BashOperator):
             collection=mongo_collection,
             out=self.tmp_file.name,
             query=mongo_query,
-            fields=mongo_fields
+            fields=mongo_fields,
+            extra_params=mongo_extra_params,
         )
         self.env = env
         self.xcom_push_flag = xcom_push

@@ -4,11 +4,13 @@ from mongo_plugin.operators.s3_to_mongo_operator import S3ToMongoOperator
 from mongo_plugin.operators.mongo_to_s3_operator import MongoToS3Operator
 from mongo_plugin.operators.mongo_aggregation_operator import MongoAggregationOperator
 from mongo_plugin.operators.mongo_export_to_s3_operator import MongoExportToS3Operator
+from mongo_plugin.operators.s3_to_mongo_import_operator import S3ToMongoImportOperator
 
 
 class MongoPlugin(AirflowPlugin):
     name = "MongoPlugin"
-    operators = [MongoToS3Operator, S3ToMongoOperator, MongoAggregationOperator, MongoExportToS3Operator]
+    operators = [MongoToS3Operator, S3ToMongoOperator, MongoAggregationOperator,
+                 MongoExportToS3Operator, S3ToMongoImportOperator]
     hooks = [MongoHook]
     executors = []
     macros = []
