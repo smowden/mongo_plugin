@@ -20,6 +20,7 @@ class MongoAggregationOperator(BaseOperator):
                  mongo_collection,
                  mongo_database,
                  mongo_query,
+                 mongo_kwargs=None,
                  *args, **kwargs):
         super(MongoAggregationOperator, self).__init__(*args, **kwargs)
         # Conn Ids
@@ -28,9 +29,9 @@ class MongoAggregationOperator(BaseOperator):
         self.mongo_db = mongo_database
         self.mongo_collection = mongo_collection
         self.mongo_query = mongo_query
+        self.mongo_kwargs = mongo_kwargs
         if not isinstance(self.mongo_query, list):
             raise TypeError('Mongo aggregation query must be of type list')
-
 
         # KWARGS
         self.replace = kwargs.pop('replace', False)
@@ -42,5 +43,7 @@ class MongoAggregationOperator(BaseOperator):
         mongo_conn = MongoHook(self.mongo_conn_id).get_conn()
 
         # Grab collection and execute query according to whether or not it is a pipeline
-        collection = mongo_conn.get_database(self.mongo_db).get_collection(self.mongo_collection)
-        collection.aggregate(self.mongo_query)
+        collection = mongo_conn.get_database(self.mongo_db).get_collection(
+            self.mongo_collection)
+        mongo_kwargs = self.mongo_kwargs if self.mongo_kwargs is not None else dict()
+        collection.aggregate(self.mongo_query, **mongo_kwargs)
