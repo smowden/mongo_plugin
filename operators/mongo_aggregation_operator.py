@@ -29,7 +29,7 @@ class MongoAggregationOperator(BaseOperator):
         self.mongo_db = mongo_database
         self.mongo_collection = mongo_collection
         self.mongo_query = mongo_query
-        self.mongo_kwargs = mongo_kwargs
+        self.mongo_kwargs = mongo_kwargs or {}
         if not isinstance(self.mongo_query, list):
             raise TypeError('Mongo aggregation query must be of type list')
 
@@ -45,5 +45,4 @@ class MongoAggregationOperator(BaseOperator):
         # Grab collection and execute query according to whether or not it is a pipeline
         collection = mongo_conn.get_database(self.mongo_db).get_collection(
             self.mongo_collection)
-        mongo_kwargs = self.mongo_kwargs if self.mongo_kwargs is not None else dict()
-        collection.aggregate(self.mongo_query, **mongo_kwargs)
+        collection.aggregate(self.mongo_query, **self.mongo_kwargs)
