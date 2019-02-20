@@ -7,37 +7,6 @@ from mongo_plugin.hooks.mongo_hook import MongoHook
 import os
 
 
-def make_mongo_export_command(uri, collection, out, query=None, fields=None, extra_params = []):
-    """
-    :param query:
-    :param fields:
-    :return:
-    """
-    fields_param = "" if not fields == 0 else "-f '{fields}'".format(fields=",".join(fields))
-    if query is None:
-        query = {}
-
-    mongo_export_cmd = """\
-    mongoexport --uri {uri}\
-    -c {collection}\
-    -q '{query}'\
-    --out {out}\
-    {fields_param}\
-    {extra_params}\
-    """.format(
-        uri=uri,
-        collection=collection,
-        query=json.dumps(query),
-        out=out,
-        fields_param=fields_param,
-        extra_params=" ".join(["--{param}".format(param=param) for param in extra_params])
-    )
-
-
-
-    return mongo_export_cmd
-
-
 class MongoExportToS3Operator(BashOperator):
     @apply_defaults
     def __init__(
