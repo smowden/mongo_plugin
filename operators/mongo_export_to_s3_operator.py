@@ -77,7 +77,7 @@ class MongoExportToS3Operator(BashOperator):
         self.s3_conn_id = s3_conn_id
         self.replace = replace
 
-    def make_mongo_export_command(self):
+    def _make_mongo_export_command(self):
         """
         :param query:
         :param fields:
