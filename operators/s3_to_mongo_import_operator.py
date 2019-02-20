@@ -19,6 +19,7 @@ class S3ToMongoImportOperator(BashOperator):
             mongo_fields=None,
             mongo_upsert_fields=None,
             mongo_import_type='json',
+            mongo_import_mode='upsert',
             mongo_columns_have_types=False,
             mongo_extra_params=None,
             xcom_push=False,
@@ -34,6 +35,7 @@ class S3ToMongoImportOperator(BashOperator):
         self.mongo_fields = mongo_fields
         self.mongo_upsert_fields = mongo_upsert_fields
         self.mongo_import_type = mongo_import_type
+        self.mongo_import_mode = mongo_import_mode
         self.mongo_columns_have_types = mongo_columns_have_types
         self.mongo_extra_params = mongo_extra_params or []
 
@@ -57,7 +59,8 @@ class S3ToMongoImportOperator(BashOperator):
         columns_have_types_param = ""
 
         if self.mongo_fields is not None:
-            fields_param = "-f '{fields}'".format(fields=",".join(self.mongo_fields))
+            fields_param = "-f '{fields}'".format(
+                fields=",".join(self.mongo_fields))
 
         if self.mongo_upsert_fields is not None:
             upsert_fields_param = "--upsertFields '{upsert_fields}'".format(
@@ -81,12 +84,13 @@ class S3ToMongoImportOperator(BashOperator):
             collection=self.mongo_collection,
             type=self.mongo_import_type,
             file=self.tmp_file.name,
-            mode=self.mongo_mode,
+            mode=self.mongo_import_mode,
             fields_param=fields_param,
             upsert_fields_param=upsert_fields_param,
             columns_have_types=columns_have_types_param,
             extra_params=" ".join(
-                ["--{param}".format(param=param) for param in self.mongo_extra_params])
+                ["--{param}".format(param=param) for param in
+                 self.mongo_extra_params])
         )
 
         return mongo_import_cmd
@@ -104,5 +108,6 @@ class S3ToMongoImportOperator(BashOperator):
         super().execute(context)
 
         size_mb = os.path.getsize(self.tmp_file.name) / pow(1024, 2)
-        self.log.info("imported file %s to mongo, size %f mb" % (self.tmp_file.name, size_mb))
+        self.log.info("imported file %s to mongo, size %f mb" % (
+        self.tmp_file.name, size_mb))
         self.tmp_file.close()
