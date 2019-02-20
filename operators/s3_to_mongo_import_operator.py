@@ -79,7 +79,7 @@ class S3ToMongoImportOperator(BashOperator):
         """.format(
             uri=self.mongo_uri,
             collection=self.mongo_collection,
-            type=self.mongo_type,
+            type=self.mongo_import_type,
             file=self.tmp_file.name,
             mode=self.mongo_mode,
             fields_param=fields_param,
