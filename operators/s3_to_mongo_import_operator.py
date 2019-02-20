@@ -27,10 +27,14 @@ class S3ToMongoImportOperator(BashOperator):
             output_encoding='utf-8',
             *args, **kwargs):
 
-        mongo_uri = MongoHook(mongo_conn_id).get_uri()
+        mongo_hook = MongoHook(mongo_conn_id)
+        mongo_conn_extras = mongo_hook.get_connection().extra_dejson
+
+        mongo_uri = mongo_hook.get_uri()
         super(BashOperator, self).__init__(*args, **kwargs)
         self.tmp_file = NamedTemporaryFile()
         self.mongo_uri = mongo_uri
+        self.mongo_conn_extras = mongo_conn_extras
         self.mongo_collection = mongo_collection
         self.mongo_fields = mongo_fields
         self.mongo_upsert_fields = mongo_upsert_fields
@@ -57,6 +61,7 @@ class S3ToMongoImportOperator(BashOperator):
         fields_param = ""
         upsert_fields_param = ""
         columns_have_types_param = ""
+        ssl = ""
 
         if self.mongo_fields is not None:
             fields_param = "-f '{fields}'".format(
@@ -69,6 +74,9 @@ class S3ToMongoImportOperator(BashOperator):
         if self.mongo_columns_have_types:
             columns_have_types_param = "--columnsHaveTypes"
 
+        if self.mongo_conn_extras.get("ssl", False):
+            ssl = "--ssl --sslAllowInvalidCertificates"
+
         mongo_import_cmd = """\
         mongoimport --uri {uri}\
         -c {collection}\
@@ -78,6 +86,7 @@ class S3ToMongoImportOperator(BashOperator):
         {fields_param}\
         {columns_have_types}\
         {upsert_fields_param}\
+        {ssl}\
         {extra_params}\
         """.format(
             uri=self.mongo_uri,
@@ -88,6 +97,7 @@ class S3ToMongoImportOperator(BashOperator):
             fields_param=fields_param,
             upsert_fields_param=upsert_fields_param,
             columns_have_types=columns_have_types_param,
+            ssl=ssl,
             extra_params=" ".join(
                 ["--{param}".format(param=param) for param in
                  self.mongo_extra_params])
