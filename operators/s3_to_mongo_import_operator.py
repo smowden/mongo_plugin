@@ -80,7 +80,7 @@ class S3ToMongoImportOperator(BashOperator):
             uri=self.mongo_uri,
             collection=self.mongo_collection,
             type=self.mongo_type,
-            file=self.mongo_file,
+            file=self.tmp_file.name,
             mode=self.mongo_mode,
             fields_param=fields_param,
             upsert_fields_param=upsert_fields_param,

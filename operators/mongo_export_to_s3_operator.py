@@ -50,7 +50,7 @@ class MongoExportToS3Operator(BashOperator):
             replace=False,
             mongo_query=None,
             mongo_fields=None,
-            mongo_extra_params=[],
+            mongo_extra_params=None,
             xcom_push=False,
             env=None,
             output_encoding='utf-8',
@@ -59,14 +59,15 @@ class MongoExportToS3Operator(BashOperator):
         mongo_uri = MongoHook(mongo_conn_id).get_uri()
         super(BashOperator, self).__init__(*args, **kwargs)
         self.tmp_file = NamedTemporaryFile()
-        self.bash_command = make_mongo_export_command(
-            uri=mongo_uri,
-            collection=mongo_collection,
-            out=self.tmp_file.name,
-            query=mongo_query,
-            fields=mongo_fields,
-            extra_params=mongo_extra_params,
-        )
+
+        self.mongo_uri = mongo_uri
+        self.mongo_collection = mongo_collection
+        self.mongo_fields = mongo_fields or []
+        self.mongo_extra_params = mongo_extra_params or []
+        self.mongo_query = mongo_query or {}
+
+
+        self.bash_command = self._make_mongo_export_command()
         self.env = env
         self.xcom_push_flag = xcom_push
         self.output_encoding = output_encoding
@@ -75,6 +76,34 @@ class MongoExportToS3Operator(BashOperator):
         self.s3_key = s3_key
         self.s3_conn_id = s3_conn_id
         self.replace = replace
+
+    def make_mongo_export_command(self):
+        """
+        :param query:
+        :param fields:
+        :return:
+        """
+        fields_param = "" if len(self.mongo_fields) == 0 else "-f '{fields}'".format(
+            fields=",".join(self.mongo_fields))
+
+        mongo_export_cmd = """\
+        mongoexport --uri {uri}\
+        -c {collection}\
+        -q '{query}'\
+        --out {out}\
+        {fields_param}\
+        {extra_params}\
+        """.format(
+            uri=self.mongo_uri,
+            collection=self.mongo_collection,
+            query=json.dumps(self.mongo_query),
+            out=self.tmp_file.name,
+            fields_param=fields_param,
+            extra_params=" ".join(
+                ["--{param}".format(param=param) for param in self.mongo_extra_params])
+        )
+
+        return mongo_export_cmd
 
     def execute(self, context):
         super().execute(context)
