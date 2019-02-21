@@ -28,9 +28,9 @@ class S3ToMongoImportOperator(BashOperator):
             *args, **kwargs):
 
         mongo_hook = MongoHook(mongo_conn_id)
-        mongo_conn_extras = mongo_hook.get_connection().extra_dejson
-
+        mongo_conn_extras = mongo_hook.get_connection(mongo_conn_id).extra_dejson
         mongo_uri = mongo_hook.get_uri()
+
         super(BashOperator, self).__init__(*args, **kwargs)
         self.tmp_file = NamedTemporaryFile()
         self.mongo_uri = mongo_uri
