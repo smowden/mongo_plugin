@@ -27,8 +27,7 @@ class MongoExportToS3Operator(BashOperator):
 
         mongo_uri = MongoHook(mongo_conn_id).get_uri()
         super(BashOperator, self).__init__(*args, **kwargs)
-        self.tmp_file = NamedTemporaryFile()
-
+        
         self.mongo_uri = mongo_uri
         self.mongo_collection = mongo_collection
         self.mongo_fields = mongo_fields or []
@@ -36,7 +35,6 @@ class MongoExportToS3Operator(BashOperator):
         self.mongo_query = mongo_query or {}
 
 
-        self.bash_command = self._make_mongo_export_command()
         self.env = env
         self.xcom_push_flag = xcom_push
         self.output_encoding = output_encoding
@@ -46,7 +44,7 @@ class MongoExportToS3Operator(BashOperator):
         self.s3_conn_id = s3_conn_id
         self.replace = replace
 
-    def _make_mongo_export_command(self):
+    def _make_mongo_export_command(self, tmp_file):
         """
         :param query:
         :param fields:
@@ -66,7 +64,7 @@ class MongoExportToS3Operator(BashOperator):
             uri=self.mongo_uri,
             collection=self.mongo_collection,
             query=json.dumps(self.mongo_query),
-            out=self.tmp_file.name,
+            out=tmp_file.name,
             fields_param=fields_param,
             extra_params=" ".join(
                 ["--{param}".format(param=param) for param in self.mongo_extra_params])
@@ -75,10 +73,12 @@ class MongoExportToS3Operator(BashOperator):
         return mongo_export_cmd
 
     def execute(self, context):
+        tmp_file = NamedTemporaryFile()
+        self.bash_command = self._make_mongo_export_command(tmp_file)
         super().execute(context)
-        size_mb = os.path.getsize(self.tmp_file.name) / pow(1024, 2)
+        size_mb = os.path.getsize(tmp_file.name) / pow(1024, 2)
         s3_conn = S3Hook(self.s3_conn_id)
-        self.log.info("uploading file %s to s3, size %f mb" % (self.tmp_file.name, size_mb))
-        s3_conn.load_file(self.tmp_file.name, self.s3_key, bucket_name=self.s3_bucket, replace=self.replace)
+        self.log.info("uploading file %s to s3, size %f mb" % (tmp_file.name, size_mb))
+        s3_conn.load_file(tmp_file.name, self.s3_key, bucket_name=self.s3_bucket, replace=self.replace)
         self.log.info("file upload finished")
-        self.tmp_file.close()
+        tmp_file.close()
